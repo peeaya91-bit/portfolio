@@ -755,8 +755,15 @@ tgCopy.addEventListener('click', function(e){
   // при открытии кейса кнопка стоит внизу
   window.caseCloseReset = () => { placeX(); target = y = bounds().max; apply(); };
 
+  // пока курсор на кнопке (или в 12px рядом), она замирает — иначе она «уезжает» из-под курсора
+  // между нажатием и отпусканием, и клик не срабатывает
+  const freeze = () => { target = y; if (raf) { cancelAnimationFrame(raf); raf = null; } apply(); };
+  btn.addEventListener('pointerdown', freeze);
+
   window.addEventListener('mousemove', (e) => {
     if (!stackEl.classList.contains('case-open')) return;
+    const r = btn.getBoundingClientRect();
+    if (e.clientX > r.left - 12 && e.clientX < r.right + 12 && e.clientY > r.top - 12 && e.clientY < r.bottom + 12) { freeze(); return; }
     const top = stackEl.getBoundingClientRect().top;
     target = clamp(e.clientY - top - btn.offsetHeight / 2);
     if (!raf) raf = requestAnimationFrame(tick);

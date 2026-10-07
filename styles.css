@@ -1839,3 +1839,7 @@ body{
 @media (prefers-reduced-motion: reduce){
   .points-hero .ph-ava, .points-hero .ph-msg{ opacity: 1; animation: none !important; }
 }
+
+/* Кнопка закрытия кейса: поднимаем весь .stack над интро (z-index 5), иначе левая часть кнопки
+   оказывалась под блоком с именем и клик в верхней половине экрана не срабатывал */
+.stack.case-open{ z-index: 6; }
