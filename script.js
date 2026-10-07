@@ -639,7 +639,12 @@ window.addEventListener('mousemove', function(e){
   hasMoved = true;
 });
 
+// на телефонах и планшетах (нет мыши) «хвост» курсора не нужен — канвас скрыт, анимация не крутится
+const hasMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
 function animateThread(){
+  if (!hasMouse) return;
+  if (!hasMoved){ requestAnimationFrame(animateThread); return; } // пока мышь не двигалась — ничего не рисуем (иначе точка в углу)
   if (hasMoved){
     points[0].x += (mouse.x - points[0].x) * 0.35;
     points[0].y += (mouse.y - points[0].y) * 0.35;
