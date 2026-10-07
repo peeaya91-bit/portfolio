@@ -50,6 +50,7 @@
 *{ box-sizing: border-box; margin:0; padding:0; }
 
 html,body{ height:100%; }
+html{ background: var(--color-bg-page); } /* тот же розовый под панелями браузера и при «оттягивании» страницы на iPhone */
 
 body{
   background: var(--bg);
