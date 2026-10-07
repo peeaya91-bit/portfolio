@@ -1,9 +1,10 @@
 const projectSlides = [
-  { type: 'project', img: 'images/project-1.jpg', title: 'UDS', openCase: true, desc: 'Агрегатор программм лояльности для\u00A0малого и\u00A0среднего бизнеса' },
-  { type: 'project', img: 'images/project-2.jpg', title: 'Проект 2', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
-  { type: 'project', img: 'images/project-3.jpg', title: 'Проект 3', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
-  { type: 'project', img: 'images/project-4.jpg', title: 'Проект 4', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
-  { type: 'project', img: 'images/project-5.jpg', title: 'Проект 5', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
+  { type: 'project', img: 'images/project-1.jpg', preview: 'uds-hero', title: 'UDS', openCase: 'uds', desc: 'Ускорение до\u00A0целевого действия' },
+  { type: 'project', img: 'images/project-3.jpg', preview: 'video', video: 'images/case-top3000/preview.mp4', poster: 'images/case-top3000/preview-poster.jpg', kicker: 'Кейс / 02', title: 'TOP3000', openCase: 'top3000', desc: 'Онбординг нового игрока через три шага к\u00A03000\u00A0₽' },
+  { type: 'project', img: 'images/project-2.jpg', preview: 'points-hero', title: 'UDS · баллы', openCase: 'points', desc: 'Как сделать механику баллов в\u00A0UDS понятной' },
+  // скрыто, пока кейса нет: { type: 'project', img: 'images/project-2.jpg', title: 'Проект 2', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
+  // скрыто, пока кейса нет: { type: 'project', img: 'images/project-4.jpg', title: 'Проект 4', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
+  // скрыто, пока кейса нет: { type: 'project', img: 'images/project-5.jpg', title: 'Проект 5', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
 ];
 
 const photoSlides = [
@@ -20,6 +21,140 @@ let cardEls = [];
 let dotEls = [];
 let activeSlides = [];
 
+/* Превью кейса UDS: лоадер крутится бесконечно, фразы появляются по одному слову
+   и сменяют друг друга по кругу */
+const LOADER_PHRASES = [
+  ['Ща, ща загрузится…', '…или нет'],
+  ['Тут как раз кейс про ожидание'],
+];
+const LOADER_WORD_STEP = 220;   // пауза между словами, мс
+const LOADER_LINE_PAUSE = 800;  // пауза перед второй строкой, мс
+const LOADER_HOLD = 2600;       // сколько фраза висит целиком, мс
+const LOADER_FADE = 400;        // исчезновение, мс
+let loaderTimer = null;
+
+function buildLoaderPreview(){
+  const box = document.createElement('div');
+  box.className = 'card-loader';
+  box.innerHTML = `
+    <svg class="card-loader-spinner" viewBox="0 0 44 44" aria-hidden="true">
+      <circle cx="22" cy="22" r="18" />
+    </svg>
+    <div class="card-loader-text" aria-live="off">
+      <div class="card-loader-line"></div>
+      <div class="card-loader-line"></div>
+    </div>`;
+  const lines = box.querySelectorAll('.card-loader-line');
+  const text = box.querySelector('.card-loader-text');
+  let idx = 0;
+
+  const show = () => {
+    const pair = LOADER_PHRASES[idx];
+    text.classList.remove('is-out');
+    let n = 0, t = 0;
+    lines.forEach((line, li) => {
+      line.innerHTML = '';
+      if (!pair[li]) return;            // во фразе может быть одна строка
+      if (li > 0) t += LOADER_LINE_PAUSE;
+      pair[li].split(' ').forEach((word) => {
+        const w = document.createElement('span');
+        w.className = 'w';
+        w.textContent = word;
+        w.style.animationDelay = `${t}ms`;
+        t += LOADER_WORD_STEP;
+        line.appendChild(w);
+        line.appendChild(document.createTextNode(' '));
+        n++;
+      });
+    });
+    const shownAt = t + 300 + LOADER_HOLD;
+    clearTimeout(loaderTimer);
+    loaderTimer = setTimeout(() => {
+      text.classList.add('is-out');
+      loaderTimer = setTimeout(() => {
+        idx = (idx + 1) % LOADER_PHRASES.length;
+        show();
+      }, LOADER_FADE);
+    }, shownAt);
+  };
+  show();
+  return box;
+}
+
+/* Превью кейса 03 (UDS, баллы): отзывы с аватарками появляются по очереди,
+   затем на экране телефона запускается анимация приложения */
+const POINTS_BUBBLES = [
+  { side: 'r', x: 376, y: 179, w: 100, img: 'a1', text: 'Хотела списать баллы, а\u00A0они пропали' },
+  { side: 'l', x: 24,  y: 195, w: 104, img: 'a2', text: 'Сделал покупку, а\u00A0баллы не\u00A0начислились' },
+  { side: 'r', x: 376, y: 315, w: 100, img: 'a3', text: 'Пропали баллы!' },
+  { side: 'l', x: 24,  y: 352, w: 104, img: 'a4', text: 'Баллы сгорели без предупреждения' },
+  { side: 'r', x: 376, y: 419, w: 100, img: 'a5', text: 'Куда делись мои баллы?' },
+];
+const POINTS_STEP = 450;   // пауза между отзывами, мс
+const POINTS_START = 300;  // задержка перед первым отзывом, мс
+const POINTS_SCREEN_DELAY = POINTS_START + POINTS_STEP * (POINTS_BUBBLES.length - 1) + 600; // старт экрана
+
+function buildPointsHero(){
+  const box = document.createElement('div');
+  box.className = 'uds-hero points-hero';
+  const bubbles = POINTS_BUBBLES.map((b, i) => `
+    <div class="ph-bubble ph-${b.side}" style="left:${b.x}px; top:${b.y}px; width:${b.w}px; --d:${POINTS_START + i * POINTS_STEP}ms">
+      <div class="ph-msg"><span>${b.text}</span><i class="ph-tail"></i></div>
+      <img class="ph-ava" src="images/case-points/${b.img}.jpg" alt="">
+    </div>`).join('');
+  box.innerHTML = `
+    <div class="uds-hero-kicker">Кейс / 03</div>
+    <div class="ph-title">Где мои баллы?</div>
+    <img class="uds-hero-phone" src="images/case-qr/phone-uds.png" alt="">
+    <div class="uds-hero-screen ph-screen">
+      <video muted playsinline loop preload="auto">
+        <source src="images/case-points/screen.mp4" type="video/mp4">
+        <source src="Animation_case2_2.mp4" type="video/mp4">
+      </video>
+      <i class="uds-hero-island"></i>
+    </div>
+    <div class="uds-hero-chip">UDS</div>
+    ${bubbles}
+    <div class="ph-caption">Как сделать механику баллов в\u00A0UDS понятной</div>`;
+  return box;
+}
+
+// запуск/сброс превью при смене активной карточки
+function syncPointsHero(card, active){
+  const box = card.querySelector('.points-hero');
+  if (!box) return;
+  if (active === (box.dataset.on === '1')) return;
+  box.dataset.on = active ? '1' : '0';
+  const v = box.querySelector('video');
+  clearTimeout(box._t);
+  if (active){
+    box.classList.remove('is-playing'); void box.offsetWidth; // перезапуск CSS-анимаций
+    box.classList.add('is-playing');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    box._t = setTimeout(() => { try { v.currentTime = 0; } catch(e){} v.play().catch(() => {}); }, reduce ? 0 : POINTS_SCREEN_DELAY);
+  } else {
+    box.classList.remove('is-playing');
+    v.pause();
+  }
+}
+
+function buildUdsHero(){
+  const box = document.createElement('div');
+  box.className = 'uds-hero';
+  box.innerHTML = `
+    <div class="uds-hero-kicker">Кейс / 01</div>
+    <div class="uds-hero-title">Ускорение целевого действия</div>
+    <img class="uds-hero-phone" src="images/case-qr/phone-uds.png" alt="">
+    <div class="uds-hero-screen">
+      <video src="Animation_case2_2.mp4" autoplay loop muted playsinline></video>
+      <i class="uds-hero-island"></i>
+    </div>
+    <div class="uds-hero-chip">UDS</div>
+    <div class="uds-hero-note uds-hero-note-l">Ускорение целевого действия</div>
+    <div class="uds-hero-note uds-hero-note-r">Показываем QR-код пока приложение загружается</div>`;
+  return box;
+}
+
 function buildCards(slidesData){
   activeSlides = slidesData;
   cardsEl.innerHTML = '';
@@ -31,6 +166,34 @@ function buildCards(slidesData){
     const card = document.createElement('div');
 card.className = slide.type === 'photo' ? 'card card-photo' : 'card';
 
+    if (slide.preview === 'video') {
+      // превью-ролик из Figma (500×580); пока ролика нет, виден постер
+      card.classList.add('card-hero-card');
+      const v = document.createElement('video');
+      v.className = 'card-video';
+      v.src = slide.video; v.poster = slide.poster;
+      v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+      v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+      card.appendChild(v);
+      if (slide.kicker) {
+        // номер кейса поверх ролика (в экспорте из Figma может стоять старый номер)
+        const ov = document.createElement('div');
+        ov.className = 'uds-hero card-video-overlay';
+        ov.innerHTML = `<div class="uds-hero-kicker">${slide.kicker}</div>`;
+        card.appendChild(ov);
+      }
+    } else if (slide.preview === 'points-hero') {
+      card.classList.add('card-hero-card');
+      card.appendChild(buildPointsHero());
+    } else if (slide.preview === 'uds-hero') {
+      // превью кейса UDS по макету 500×580: заголовок, телефон, анимация на экране
+      card.classList.add('card-hero-card');
+      card.appendChild(buildUdsHero());
+    } else if (slide.preview === 'loader') {
+      // анимированное превью кейса UDS: бесконечный лоадер + фразы по словам
+      card.classList.add('card-loader-card');
+      card.appendChild(buildLoaderPreview());
+    } else {
     const img = document.createElement('img');
     img.src = slide.img;
     img.alt = slide.type === 'photo' ? slide.caption : slide.title;
@@ -43,6 +206,7 @@ card.className = slide.type === 'photo' ? 'card card-photo' : 'card';
 
     img.onload = () => { fallback.classList.add('hidden'); };
     img.onerror = () => { img.remove(); fallback.classList.remove('hidden'); };
+    }
 
     if (slide.type === 'photo' && slide.caption) {
       const caption = document.createElement('div');
@@ -75,6 +239,13 @@ arrowBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M1
 
   card.appendChild(projectCaption);
 }
+    if (slide.openCase) {
+      // кнопка «Подробнее» — появляется при наведении на карточку кейса
+      const more = document.createElement('span');
+      more.className = 'card-more';
+      more.innerHTML = 'Подробнее<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5.833 9.166 10 5 14.167M11.25 5.833 15.416 10l-4.166 4.167" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      card.appendChild(more);
+    }
     cardsEl.appendChild(card);
     cardEls.push(card);
 
@@ -107,10 +278,13 @@ function render() {
 
     el.style.width = `${baseW}px`;
     el.style.height = `${baseH}px`;
+    const hero = el.querySelector('.uds-hero');
+    if (hero) hero.style.transform = `scale(${baseW / 500}, ${baseH / 580})`;
     el.style.transform = 'translate(-50%, -50%)';
     el.style.opacity = isCurrent ? 1 : 0;
     el.style.pointerEvents = isCurrent ? 'auto' : 'none';
     el.style.zIndex = isCurrent ? 100 : 0;
+    syncPointsHero(el, isCurrent);
 
     const label = el.querySelector('.label');
     if (label) label.style.opacity = isCurrent ? 1 : 0;
@@ -130,13 +304,59 @@ const stackEl = document.querySelector('.stack');
 const viewportEl = document.getElementById('viewport');
 const caseContentEl = document.getElementById('caseContent');
 
-function openCase(){
+function showCase(id){
+  // показываем нужный кейс, остальные прячем
+  caseContentEl.querySelectorAll('.case-body').forEach((b) => {
+    b.classList.toggle('is-active', b.dataset.case === id);
+  });
   stackEl.classList.add('case-open');
   caseContentEl.scrollTop = 0;
+  if (window.caseCloseReset) window.caseCloseReset();
+}
+
+/* Открытие кейса: карточка плавно растёт до размера слайда,
+   затем контент кейса проявляется через opacity */
+const CASE_GROW_MS = 550;
+let caseAnimating = false;
+function openCase(id){
+  if (caseAnimating) return;
+  const card = cardEls[current];
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!card || reduce) { showCase(id); caseContentEl.classList.add('is-shown'); return; }
+  caseAnimating = true;
+
+  const from = card.getBoundingClientRect();
+  const sr = stackEl.getBoundingClientRect();
+  const w = Math.min(720, sr.width);
+  const to = { left: sr.left + (sr.width - w) / 2, top: sr.top + 32, width: w, height: window.innerHeight - 80 };
+
+  const ghost = document.createElement('div');
+  ghost.className = 'case-ghost';
+  Object.assign(ghost.style, { left: from.left + 'px', top: from.top + 'px', width: from.width + 'px', height: from.height + 'px' });
+  document.body.appendChild(ghost);
+  ghost.getBoundingClientRect(); // фиксируем стартовое положение
+  ghost.classList.add('grow');
+  Object.assign(ghost.style, { left: to.left + 'px', top: to.top + 'px', width: to.width + 'px', height: to.height + 'px' });
+
+  setTimeout(() => {
+    caseContentEl.classList.remove('is-shown');
+    showCase(id);
+    caseContentEl.getBoundingClientRect();
+    caseContentEl.classList.add('is-shown');
+    ghost.classList.add('out');
+    setTimeout(() => { ghost.remove(); caseAnimating = false; }, 400);
+  }, CASE_GROW_MS);
 }
 function closeCase(){
-  stackEl.classList.remove('case-open');
+  if (caseAnimating) return;
+  caseAnimating = true;
+  caseContentEl.classList.remove('is-shown');
+  setTimeout(() => {
+    stackEl.classList.remove('case-open');
+    caseAnimating = false;
+  }, 300);
 }
+
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && stackEl.classList.contains('case-open')) closeCase();
@@ -154,37 +374,42 @@ stackEl.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 let dragStartY = null;
+let dragStartX = null;
 let dragMoved = false;
 let dragLock = false;
 
-function dragStart(y) {
+// листаем по доминирующей оси: на десктопе вертикально, на мобильном — свайпом влево/вправо
+function dragStart(x, y) {
+  dragStartX = x;
   dragStartY = y;
   dragMoved = false;
   viewportEl.classList.add('grabbing');
 }
-function dragMove(y) {
+function dragMove(x, y) {
   if (dragStartY === null || dragLock) return;
-  const diff = dragStartY - y;
+  const dx = dragStartX - x, dy = dragStartY - y;
+  const diff = Math.abs(dx) > Math.abs(dy) ? dx : dy;
   if (Math.abs(diff) > 6) dragMoved = true;
-  if (Math.abs(diff) > 70) {
+  if (Math.abs(diff) > 50) {
     dragLock = true;
     goTo(current + (diff > 0 ? 1 : -1));
-    dragStartY = y;
+    dragStartX = x; dragStartY = y;
     setTimeout(() => { dragLock = false; }, 350);
   }
 }
 function dragEnd() {
   dragStartY = null;
+  dragStartX = null;
   viewportEl.classList.remove('grabbing');
 }
 
 viewportEl.addEventListener('pointerdown', (e) => {
   viewportEl.setPointerCapture(e.pointerId);
-  dragStart(e.clientY);
+  dragStart(e.clientX, e.clientY);
 });
 viewportEl.addEventListener('pointermove', (e) => {
-  if (e.buttons === 0) return;
-  dragMove(e.clientY);
+  if (e.buttons === 0 && e.pointerType === 'mouse') return;
+  dragMove(e.clientX, e.clientY);
 });
 viewportEl.addEventListener('pointerup', dragEnd);
 viewportEl.addEventListener('pointercancel', dragEnd);
@@ -198,7 +423,7 @@ viewportEl.addEventListener('click', (e) => {
   const rect = cardEls[current].getBoundingClientRect();
   const insideCard = e.clientX >= rect.left && e.clientX <= rect.right &&
                      e.clientY >= rect.top && e.clientY <= rect.bottom;
-  if (insideCard) openCase();
+  if (insideCard) openCase(slide.openCase);
 });
 
 window.addEventListener('keydown', (e) => {
@@ -219,6 +444,8 @@ const aboutPanel = document.getElementById('aboutPanel');
 const introTopEl = document.querySelector('.intro-top');
 
 function centerIntro(){
+  // на мобильном отступы задаёт CSS (имя сверху, как в макете)
+  if (window.matchMedia('(max-width: 860px)').matches) { introTopEl.style.paddingTop = ''; return; }
   const heroHeight = document.querySelector('.hero').clientHeight;
   const introTopHeight = introTopEl.offsetHeight;
   const pad = Math.max(40, (heroHeight - introTopHeight) / 2);
@@ -235,9 +462,24 @@ const closeIconSvg = `<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strok
 
 const downloadIconSvg = `<path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
 
+/* смещение каждой кнопки контакта до бабла: из него они «вылетают» и в него же «собираются» */
+function setGatherOffsets(){
+  const b = bubbleBtn.getBoundingClientRect();
+  socials.querySelectorAll('.icon-btn.extra').forEach((el) => {
+    // меряем исходное положение кнопки без текущего сдвига
+    el.style.transition = 'none'; el.style.transform = 'none';
+    const r = el.getBoundingClientRect();
+    el.style.transform = ''; el.getBoundingClientRect(); el.style.transition = '';
+    el.style.setProperty('--dx', (b.left - r.left) + 'px');
+  });
+}
+window.addEventListener('load', setGatherOffsets);
+window.addEventListener('resize', setGatherOffsets);
+
 bubbleBtn.addEventListener('click', function(e){
   if (socials.classList.contains('profile-open')) return; // в этом режиме кнопка = скачать CV, идём по ссылке как обычно
   e.preventDefault();
+  setGatherOffsets();
   const isOpen = socials.classList.toggle('expanded');
   bubbleBtn.classList.toggle('active', isOpen);
   bubbleBtn.classList.toggle('round', isOpen);
@@ -251,33 +493,62 @@ toggleBtn.addEventListener('click', function(e){
   toggleBtn.classList.toggle('round', isOpen);
   toggleIcon.innerHTML = isOpen ? closeIconSvg : personIconSvg;
 
+  // если контакты были раскрыты — они «собираются» обратно в бабл, а бабл без кручения превращается в CV
+  if (socials.classList.contains('expanded')) {
+    setGatherOffsets();
+    bubbleBtn.classList.add('no-spin');
+    setTimeout(() => bubbleBtn.classList.remove('no-spin'), 700);
+  }
   socials.classList.remove('expanded');
   bubbleBtn.classList.remove('active', 'round');
   socials.classList.toggle('profile-open', isOpen);
   bubbleIcon.innerHTML = isOpen ? downloadIconSvg : bubbleIconSvg;
 
-  stackEl.classList.toggle('photos', isOpen);
-  render();
-
-  const currentCard = cardEls[current];
-
-  function onGrowEnd(evt){
-    if (evt.propertyName !== 'width') return;
-    currentCard.removeEventListener('transitionend', onGrowEnd);
-
-    cardsEl.classList.add('fading');
-
-    function onFadeOutEnd(evt2){
-      if (evt2.propertyName !== 'opacity') return;
-      cardsEl.removeEventListener('transitionend', onFadeOutEnd);
-
-      buildCards(isOpen ? photoSlides : projectSlides);
-      cardsEl.classList.remove('fading');
-    }
-    cardsEl.addEventListener('transitionend', onFadeOutEnd);
+  // вместо карточек кейсов показываем стопку фотографий
+  // если был открыт кейс — закрываем его, иначе он остаётся рядом с фото
+  if (isOpen && stackEl.classList.contains('case-open')) {
+    stackEl.classList.remove('case-open');
+    caseContentEl.classList.remove('is-shown');
   }
-  currentCard.addEventListener('transitionend', onGrowEnd);
+  // на мобильном фото сразу разложены веером, на десктопе — собраны в стопку
+  // на мобильном фото сразу разложены веером, на десктопе — лежат стопкой и раскрываются по клику
+  photoStack.classList.toggle('expanded', isMobileView());
+  photoStack.querySelectorAll('.ps-item').forEach(x => x.classList.remove('is-front'));
+  stackEl.classList.toggle('photos', isOpen);
 });
+
+/* Стопка фото «обо мне»: по клику фото разлетаются веером и собираются обратно */
+const isMobileView = () => window.matchMedia('(max-width: 860px)').matches;
+const photoStack = (() => {
+  const box = document.createElement('div');
+  box.className = 'photo-stack';
+  box.setAttribute('aria-label', 'Фотографии');
+  const COLLAPSED_ROT = [-7, 5, -3];      // лёгкий наклон в стопке
+  const EXPANDED_ROT  = [-12, 8, -5];     // наклон, когда фото разложены
+  photoSlides.forEach((ph, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ps-item';
+    b.style.setProperty('--i', i);
+    b.style.setProperty('--cr', COLLAPSED_ROT[i] + 'deg');
+    b.style.setProperty('--er', EXPANDED_ROT[i] + 'deg');
+    b.setAttribute('aria-label', 'Разложить или собрать фотографии');
+    b.innerHTML = `<img src="${ph.img}" alt="${ph.caption || ''}"><span class="ps-caption">${ph.caption || ''}</span>`;
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isMobileView()) {
+        // мобильный: тап поднимает фото на верхний слой
+        box.querySelectorAll('.ps-item').forEach(x => x.classList.toggle('is-front', x === b));
+        return;
+      }
+      const open = box.classList.toggle('expanded');
+      box.querySelectorAll('.ps-item').forEach(x => x.setAttribute('aria-pressed', open));
+    });
+    box.appendChild(b);
+  });
+  stackEl.appendChild(box);
+  return box;
+})();
 
 const phoneCopy = document.getElementById('phoneCopy');
 const phoneBtn = phoneCopy.closest('.icon-btn');
@@ -401,7 +672,7 @@ function animateThread(){
     ctx.beginPath();
     ctx.moveTo(midX1, midY1);
     ctx.quadraticCurveTo(p2.x, p2.y, midX2, midY2);
-    ctx.strokeStyle = `rgba(36, 84, 166, ${alpha})`;
+    ctx.strokeStyle = `rgba(29, 95, 209, ${alpha})`;
     ctx.lineWidth = width;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -427,3 +698,230 @@ tgCopy.addEventListener('click', function(e){
     }, 1500);
   });
 });
+/* Анимации в кейсе: запускаются, когда блок целиком на экране,
+   и сбрасываются, когда блок полностью уходит с экрана (чтобы проиграть снова).
+   03 — прогресс-бары в таблице, 04 — скрины конкурентов, 07 — стрелки к телефону */
+(() => {
+  const blocks = document.querySelectorAll('.case-content .benchchart, .case-content .bench-shots, .case-content .sol-scheme, .case-content .t3k-flow, .case-content .pts-anim');
+  if (!blocks.length) return;
+  if (!('IntersectionObserver' in window)) { blocks.forEach(b => b.classList.add('is-animated')); return; }
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      // схема на 07 высокая и может не влезть в экран целиком — ей хватает 60%
+      const need = entry.target.classList.contains('sol-scheme') || entry.target.classList.contains('t3k-flow') || entry.target.classList.contains('pts-anim') ? 0.6 : 0.98;
+      if (entry.intersectionRatio >= need) entry.target.classList.add('is-animated');
+      else if (!entry.isIntersecting) entry.target.classList.remove('is-animated');
+    });
+  }, { threshold: [0, 0.6, 0.98] });
+
+  blocks.forEach(b => io.observe(b));
+})();
+
+
+/* Кнопка закрытия кейса: слева от слайдов, следует за курсором по вертикали в пределах контейнера */
+(() => {
+  const btn = document.getElementById('caseClose');
+  if (!btn) return;
+  btn.addEventListener('click', (e) => { e.stopPropagation(); closeCase(); });
+
+  const PAD = 32;                 // отступ от верха и низа контейнера
+  const GAP = 16;                 // отступ кнопки от контейнера со слайдами
+
+  // ставим кнопку слева от слайдов: левый край слайда − ширина кнопки − 16px
+  const placeX = () => {
+    if (window.matchMedia('(max-width: 860px)').matches) { btn.style.left = ''; return; } // на мобильном кнопка внизу по центру (CSS)
+    const slide = caseContentEl.querySelector('.case-body.is-active section');
+    if (!slide) return;
+    const left = slide.getBoundingClientRect().left - stackEl.getBoundingClientRect().left;
+    btn.style.left = `${left - btn.offsetWidth - GAP}px`;
+  };
+  let target = 0, y = 0, raf = null;
+
+  const bounds = () => {
+    const h = stackEl.clientHeight;
+    return { min: PAD, max: h - PAD - btn.offsetHeight };
+  };
+  const clamp = (v) => { const b = bounds(); return Math.max(b.min, Math.min(b.max, v)); };
+  const apply = () => { btn.style.transform = `translateY(${y}px)`; };
+
+  const tick = () => {
+    y += (target - y) * 0.18;     // плавное «догоняние» курсора
+    apply();
+    if (Math.abs(target - y) > 0.5) raf = requestAnimationFrame(tick);
+    else { y = target; apply(); raf = null; }
+  };
+
+  // при открытии кейса кнопка стоит внизу
+  window.caseCloseReset = () => { placeX(); target = y = bounds().max; apply(); };
+
+  window.addEventListener('mousemove', (e) => {
+    if (!stackEl.classList.contains('case-open')) return;
+    const top = stackEl.getBoundingClientRect().top;
+    target = clamp(e.clientY - top - btn.offsetHeight / 2);
+    if (!raf) raf = requestAnimationFrame(tick);
+  });
+  window.addEventListener('resize', () => {
+    if (!stackEl.classList.contains('case-open')) return;
+    placeX(); target = clamp(target); y = clamp(y); apply();
+  });
+})();
+
+/* Карусели в кейсе TOP3000: стрелки листают по одному слайду */
+document.querySelectorAll('.t3k-carousel, .pts-carousel').forEach((car) => {
+  const track = car.querySelector('.t3k-track, .pts-track');
+  const items = [...track.children];
+  const prev = car.querySelector('.t3k-prev');
+  const next = car.querySelector('.t3k-next-btn');
+  let idx = 0;
+  const gap = () => parseFloat(getComputedStyle(track).columnGap) || 0; // 16px на десктопе, 8px на мобильном
+  const perView = () => {
+    const w = items[0].getBoundingClientRect().width || 1;
+    const vw = car.querySelector('.t3k-viewport, .pts-viewport').getBoundingClientRect().width;
+    return Math.max(1, Math.round((vw + gap()) / (w + gap())));
+  };
+  const update = () => {
+    const max = Math.max(0, items.length - perView());
+    idx = Math.min(Math.max(idx, 0), max);
+    const step = items[0].getBoundingClientRect().width + gap();
+    track.style.transform = `translateX(${-idx * step}px)`;
+    prev.disabled = idx === 0;
+    next.disabled = idx >= max;
+  };
+  prev.addEventListener('click', (e) => { e.stopPropagation(); idx--; update(); });
+  next.addEventListener('click', (e) => { e.stopPropagation(); idx++; update(); });
+  window.addEventListener('resize', update);
+  // пересчитать, когда кейс открыли (до этого он скрыт и ширины нулевые)
+  new MutationObserver(update).observe(stackEl, { attributes: true, attributeFilter: ['class'] });
+  update();
+});
+
+
+/* Мобильный: скрины конкурентов (04 / Бенчмаркинг) листаются по одному стрелками */
+(() => {
+  const shots = document.querySelector('.case-content .bench-shots');
+  const nav = document.querySelector('.case-content .bench-nav');
+  if (!shots || !nav) return;
+  const prev = nav.querySelector('.t3k-prev');
+  const next = nav.querySelector('.t3k-next-btn');
+  const go = (dir) => shots.scrollBy({ left: dir * shots.clientWidth, behavior: 'smooth' });
+  // стрелка неактивна, если в эту сторону листать больше некуда
+  const update = () => {
+    const max = shots.scrollWidth - shots.clientWidth;
+    prev.disabled = shots.scrollLeft <= 2;
+    next.disabled = shots.scrollLeft >= max - 2;
+  };
+  prev.addEventListener('click', (e) => { e.stopPropagation(); go(-1); });
+  next.addEventListener('click', (e) => { e.stopPropagation(); go(1); });
+  shots.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  new MutationObserver(update).observe(stackEl, { attributes: true, attributeFilter: ['class'] });
+  update();
+})();
+
+
+/* Мобильный: блоки со скринами, которые листаются свайпом, + стрелки под ними (.scroll-nav) */
+document.querySelectorAll('.case-content .scroll-nav').forEach((nav) => {
+  const box = nav.previousElementSibling;
+  if (!box) return;
+  const prev = nav.querySelector('.t3k-prev');
+  const next = nav.querySelector('.t3k-next-btn');
+  const go = (dir) => box.scrollBy({ left: dir * box.clientWidth, behavior: 'smooth' });
+  const update = () => {
+    const max = box.scrollWidth - box.clientWidth;
+    prev.disabled = box.scrollLeft <= 2;
+    next.disabled = box.scrollLeft >= max - 2;
+  };
+  prev.addEventListener('click', (e) => { e.stopPropagation(); go(-1); });
+  next.addEventListener('click', (e) => { e.stopPropagation(); go(1); });
+  box.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  new MutationObserver(update).observe(stackEl, { attributes: true, attributeFilter: ['class'] });
+  update();
+});
+
+
+/* Просмотр полного флоу конкурента: кнопка под скрином открывает картинку поверх страницы.
+   Картинка «вырастает» из скрина, закрывается по Esc, клику на фон, крестику или перетаскиванием в сторону. */
+(() => {
+  const btns = document.querySelectorAll('.lb-open');
+  if (!btns.length) return;
+  const lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.innerHTML = '<div class="lb-backdrop"></div><div class="lb-stage"><div class="lb-frame"><img alt=""></div></div><button type="button" class="lb-close" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>';
+  document.body.appendChild(lb);
+  const frame = lb.querySelector('.lb-frame');
+  const img = lb.querySelector('img');
+  let origin = null, open = false;
+  const isMobile = () => window.matchMedia('(max-width: 860px)').matches;
+
+  const flip = (fromRect) => {
+    const to = frame.getBoundingClientRect();
+    if (!fromRect || !to.width) return;
+    const sx = fromRect.width / to.width, sy = fromRect.height / to.height;
+    frame.style.transition = 'none';
+    frame.style.transformOrigin = '0 0';
+    frame.style.transform = `translate(${fromRect.left - to.left}px, ${fromRect.top - to.top}px) scale(${sx}, ${sy})`;
+    frame.style.opacity = '0.4';
+    frame.getBoundingClientRect();
+    frame.style.transition = 'transform .34s cubic-bezier(.22,1,.36,1), opacity .2s ease';
+    frame.style.transform = '';
+    frame.style.opacity = '1';
+  };
+
+  const show = (btn) => {
+    origin = btn.closest('figure').querySelector('img');
+    img.src = btn.dataset.full; img.alt = btn.dataset.alt || '';
+    lb.classList.add('is-open'); open = true;
+    document.documentElement.style.overflow = 'hidden';
+    const go = () => { if (!isMobile()) flip(origin.getBoundingClientRect()); };
+    img.complete ? requestAnimationFrame(go) : img.addEventListener('load', go, { once: true });
+    lb.querySelector('.lb-close').focus({ preventScroll: true });
+  };
+  const hide = () => {
+    if (!open) return; open = false;
+    frame.style.transition = 'transform .2s ease, opacity .2s ease';
+    frame.style.opacity = '0';
+    lb.classList.remove('is-open');
+    document.documentElement.style.overflow = '';
+    setTimeout(() => { frame.style.transform = ''; frame.style.opacity = ''; frame.style.transition = ''; img.src = ''; }, 220);
+  };
+
+  btns.forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); show(b); }));
+  lb.querySelector('.lb-backdrop').addEventListener('click', hide);
+  lb.querySelector('.lb-stage').addEventListener('click', (e) => { if (e.target === e.currentTarget) hide(); });
+  lb.querySelector('.lb-close').addEventListener('click', hide);
+  document.addEventListener('keydown', (e) => { if (open && e.key === 'Escape') { e.stopImmediatePropagation(); hide(); } }, true);
+
+  // перетаскивание (десктоп): тянем картинку, отпускаем далеко или резко — закрывается
+  let start = null, last = null;
+  frame.addEventListener('pointerdown', (e) => {
+    if (isMobile()) return;
+    start = { x: e.clientX, y: e.clientY, t: performance.now() }; last = start;
+    frame.setPointerCapture(e.pointerId); frame.style.transition = 'none'; frame.classList.add('dragging');
+  });
+  frame.addEventListener('pointermove', (e) => {
+    if (!start) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    const k = 0.6; // «резиновое» сопротивление
+    frame.style.transform = `translate(${dx * k}px, ${dy * k}px) rotate(${Math.max(-2.5, Math.min(2.5, dx / 120))}deg)`;
+    last = { x: e.clientX, y: e.clientY, t: performance.now() };
+  });
+  const end = () => {
+    if (!start) return;
+    const dx = last.x - start.x, dy = last.y - start.y;
+    const dt = Math.max(1, last.t - start.t), v = Math.hypot(dx, dy) / dt * 1000;
+    frame.classList.remove('dragging');
+    start = null;
+    if (Math.abs(dx) > 140 || Math.abs(dy) > 140 || v > 650) {
+      frame.style.transition = 'transform .16s ease-out, opacity .16s ease-out';
+      frame.style.transform += ` translate(${dx * 0.5}px, ${dy * 0.5}px)`;
+      hide();
+    } else {
+      frame.style.transition = 'transform .22s cubic-bezier(.22,1,.36,1)';
+      frame.style.transform = '';
+    }
+  };
+  frame.addEventListener('pointerup', end);
+  frame.addEventListener('pointercancel', end);
+})();
