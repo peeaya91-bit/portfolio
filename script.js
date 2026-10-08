@@ -779,32 +779,66 @@ tgCopy.addEventListener('click', function(e){
   });
 })();
 
-/* Карусели в кейсе TOP3000: стрелки листают по одному слайду */
+/* Карусели в кейсах 02 и 03: листаются стрелками и свайпом (палец ведёт ленту, отпустил — доводим до слайда) */
 document.querySelectorAll('.t3k-carousel, .pts-carousel').forEach((car) => {
   const track = car.querySelector('.t3k-track, .pts-track');
+  const viewport = car.querySelector('.t3k-viewport, .pts-viewport');
   const items = [...track.children];
   const prev = car.querySelector('.t3k-prev');
   const next = car.querySelector('.t3k-next-btn');
   let idx = 0;
   const gap = () => parseFloat(getComputedStyle(track).columnGap) || 0; // 16px на десктопе, 8px на мобильном
+  const stepW = () => items[0].getBoundingClientRect().width + gap();
   const perView = () => {
     const w = items[0].getBoundingClientRect().width || 1;
-    const vw = car.querySelector('.t3k-viewport, .pts-viewport').getBoundingClientRect().width;
+    const vw = viewport.getBoundingClientRect().width;
     return Math.max(1, Math.round((vw + gap()) / (w + gap())));
   };
-  const update = () => {
-    const max = Math.max(0, items.length - perView());
-    idx = Math.min(Math.max(idx, 0), max);
-    const step = items[0].getBoundingClientRect().width + gap();
-    track.style.transform = `translateX(${-idx * step}px)`;
+  const maxIdx = () => Math.max(0, items.length - perView());
+  const update = (drag = 0) => {
+    idx = Math.min(Math.max(idx, 0), maxIdx());
+    track.style.transform = `translateX(${-idx * stepW() + drag}px)`;
     prev.disabled = idx === 0;
-    next.disabled = idx >= max;
+    next.disabled = idx >= maxIdx();
   };
   prev.addEventListener('click', (e) => { e.stopPropagation(); idx--; update(); });
   next.addEventListener('click', (e) => { e.stopPropagation(); idx++; update(); });
-  window.addEventListener('resize', update);
+
+  // свайп: вертикальный скролл страницы оставляем браузеру (touch-action: pan-y в CSS)
+  let sx = null, sy = null, dx = 0, horiz = null, t0 = 0;
+  viewport.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    sx = e.clientX; sy = e.clientY; dx = 0; horiz = null; t0 = performance.now();
+  });
+  viewport.addEventListener('pointermove', (e) => {
+    if (sx === null) return;
+    const mx = e.clientX - sx, my = e.clientY - sy;
+    if (horiz === null && (Math.abs(mx) > 6 || Math.abs(my) > 6)) {
+      horiz = Math.abs(mx) > Math.abs(my);
+      if (horiz) { viewport.setPointerCapture(e.pointerId); track.style.transition = 'none'; }
+    }
+    if (!horiz) return;
+    dx = mx;
+    // у краёв лента тянется с сопротивлением
+    const edge = (idx === 0 && dx > 0) || (idx >= maxIdx() && dx < 0);
+    update(edge ? dx / 3 : dx);
+  });
+  const end = () => {
+    if (sx === null) return;
+    if (horiz) {
+      track.style.transition = '';
+      const fast = Math.abs(dx) / Math.max(1, performance.now() - t0) > 0.4;
+      if (Math.abs(dx) > stepW() * 0.25 || (fast && Math.abs(dx) > 20)) idx += dx < 0 ? 1 : -1;
+      update();
+    }
+    sx = sy = null; horiz = null; dx = 0;
+  };
+  viewport.addEventListener('pointerup', end);
+  viewport.addEventListener('pointercancel', end);
+
+  window.addEventListener('resize', () => update());
   // пересчитать, когда кейс открыли (до этого он скрыт и ширины нулевые)
-  new MutationObserver(update).observe(stackEl, { attributes: true, attributeFilter: ['class'] });
+  new MutationObserver(() => update()).observe(stackEl, { attributes: true, attributeFilter: ['class'] });
   update();
 });
 
@@ -936,4 +970,87 @@ document.querySelectorAll('.case-content .scroll-nav').forEach((nav) => {
   };
   frame.addEventListener('pointerup', end);
   frame.addEventListener('pointercancel', end);
+})();
+
+
+/* 05 · Десктоп: сценарий модалок регистрации, шаги слева кликабельны.
+   Играют, когда картинка на 60% в экране; сбрасываются, когда блок уходит с экрана. */
+(() => {
+  const anims = document.querySelectorAll('.case-content .dsk-anim');
+  if (!anims.length) return;
+  // [мс, шаг] или [мс, 'tap', x%, y%] — координаты касания внутри модалки / колонки купона
+  const SCRIPTS = {
+    modals: [[0, 0], [900, 'tap', 50, 78.2], [1250, 1], [2350, 'tap', 50, 89.7], [2700, 2], [3800, 'tap', 50, 44.2], [4150, 3]]
+  };
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const setStep = (el, n) => {
+    el.dataset.step = n;
+    el.querySelectorAll('.dsk-steps li').forEach((li, i) => { li.classList.toggle('is-on', i === n); li.classList.toggle('is-done', i < n); });
+    el.querySelectorAll('.dm').forEach((m, i) => { m.classList.toggle('is-on', i === n); m.classList.toggle('is-past', i < n); });
+    const nav = el.querySelector('.dsk-nav');
+    if (nav) {
+      nav.querySelector('.t3k-prev').disabled = n === 0;
+      nav.querySelector('.t3k-next-btn').disabled = n >= el.querySelectorAll('.dm').length - 1;
+    }
+  };
+  const tap = (el, x, y) => {
+    const t = el.querySelector('.dsk-tap'); if (!t) return;
+    t.style.left = x + '%'; t.style.top = y + '%';
+    t.classList.remove('is-tapping'); void t.offsetWidth; t.classList.add('is-tapping');
+  };
+  const stop = (el) => {
+    (el._timers || []).forEach(clearTimeout); el._timers = []; el._playing = false;
+    const t = el.querySelector('.dsk-tap'); if (t) t.classList.remove('is-tapping');
+    setStep(el, 0);
+  };
+  const play = (el) => {
+    stop(el); el._playing = true;
+    const script = SCRIPTS.modals;
+    if (reduce) { setStep(el, script[script.length - 1][1]); return; }
+    script.forEach(([ms, a, x, y]) => el._timers.push(setTimeout(() => (a === 'tap' ? tap(el, x, y) : setStep(el, a)), ms)));
+  };
+
+  anims.forEach((el) => setStep(el, 0));
+  // шаги кликабельны, на мобильном ещё стрелки и свайп по модалке — всё останавливает автопроигрывание
+  anims.forEach((el) => {
+    const n = el.querySelectorAll('.dm').length;
+    const goTo = (i) => {
+      i = Math.max(0, Math.min(n - 1, i));
+      (el._timers || []).forEach(clearTimeout); el._timers = []; el._playing = true; el._manual = true; setStep(el, i);
+    };
+    const cur = () => +el.dataset.step || 0;
+    const nav = el.querySelector('.dsk-nav');
+    if (nav) {
+      nav.querySelector('.t3k-prev').addEventListener('click', (e) => { e.stopPropagation(); goTo(cur() - 1); });
+      nav.querySelector('.t3k-next-btn').addEventListener('click', (e) => { e.stopPropagation(); goTo(cur() + 1); });
+    }
+    const stage = el.querySelector('.dsk-stage');
+    let sx = null, sy = null;
+    stage.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') { sx = e.clientX; sy = e.clientY; } });
+    stage.addEventListener('pointerup', (e) => {
+      if (sx === null) return;
+      const mx = e.clientX - sx, my = e.clientY - sy; sx = sy = null;
+      if (Math.abs(mx) > 40 && Math.abs(mx) > Math.abs(my)) goTo(cur() + (mx < 0 ? 1 : -1));
+    });
+    stage.addEventListener('pointercancel', () => { sx = sy = null; });
+  });
+  // шаги кликабельны: клик останавливает автопроигрывание и показывает нужную модалку
+  anims.forEach((el) => {
+    el.querySelectorAll('.dsk-steps li').forEach((li, i) => {
+      const go = () => { (el._timers || []).forEach(clearTimeout); el._timers = []; el._playing = true; el._manual = true; setStep(el, i); };
+      li.addEventListener('click', go);
+      li.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    });
+  });
+  if (!('IntersectionObserver' in window)) { anims.forEach(play); return; }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const el = entry.target.closest('.dsk-anim');
+      if (el._manual) return; // после ручного выбора шага больше не перезапускаем
+      if (entry.intersectionRatio >= 0.6 && !el._playing) play(el);
+      else if (!entry.isIntersecting) stop(el);
+    });
+  }, { threshold: [0, 0.6] });
+  anims.forEach((el) => io.observe(el.querySelector('.dsk-stage')));
 })();
