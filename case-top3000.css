@@ -458,3 +458,8 @@
 @media (max-width: 860px){
   .case-content .dsk-nav{ display: flex; order: -1; margin: -8px auto 0; }
 }
+
+/* мобилки: без тени под модалками — в Safari drop-shadow даёт полосы под картинкой */
+@media (max-width: 860px){
+  .case-content .dm{ filter: none; }
+}
