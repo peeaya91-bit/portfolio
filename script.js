@@ -1,7 +1,7 @@
 const projectSlides = [
   { type: 'project', img: 'images/project-1.jpg', preview: 'uds-hero', title: 'UDS', openCase: 'uds', desc: 'Ускорение до\u00A0целевого действия' },
   { type: 'project', img: 'images/project-3.jpg', preview: 'video', video: 'images/case-top3000/preview.mp4', poster: 'images/case-top3000/preview-poster.jpg', kicker: 'Кейс / 02', title: 'TOP3000', openCase: 'top3000', desc: 'Онбординг нового игрока через три шага к\u00A03000\u00A0₽' },
-  { type: 'project', img: 'images/project-2.jpg', preview: 'points-hero', title: 'UDS · баллы', openCase: 'points', desc: 'Как сделать механику баллов в\u00A0UDS понятной' },
+  { type: 'project', img: 'images/project-2.jpg', preview: 'points-hero', title: 'UDS · бонусы', openCase: 'points', desc: 'Как сделать механику бонусов в\u00A0UDS понятной' },
   // скрыто, пока кейса нет: { type: 'project', img: 'images/project-2.jpg', title: 'Проект 2', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
   // скрыто, пока кейса нет: { type: 'project', img: 'images/project-4.jpg', title: 'Проект 4', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
   // скрыто, пока кейса нет: { type: 'project', img: 'images/project-5.jpg', title: 'Проект 5', desc: 'Короткое описание проекта в одно-два предложения, которое расскажет о задаче и решении.' },
@@ -81,14 +81,14 @@ function buildLoaderPreview(){
   return box;
 }
 
-/* Превью кейса 03 (UDS, баллы): отзывы с аватарками появляются по очереди,
+/* Превью кейса 03 (UDS, бонусы): отзывы с аватарками появляются по очереди,
    затем на экране телефона запускается анимация приложения */
 const POINTS_BUBBLES = [
-  { side: 'r', x: 376, y: 179, w: 100, img: 'a1', text: 'Хотела списать баллы, а\u00A0они пропали' },
-  { side: 'l', x: 24,  y: 195, w: 104, img: 'a2', text: 'Сделал покупку, а\u00A0баллы не\u00A0начислились' },
-  { side: 'r', x: 376, y: 315, w: 100, img: 'a3', text: 'Пропали баллы!' },
-  { side: 'l', x: 24,  y: 352, w: 104, img: 'a4', text: 'Баллы сгорели без предупреждения' },
-  { side: 'r', x: 376, y: 419, w: 100, img: 'a5', text: 'Куда делись мои баллы?' },
+  { side: 'r', x: 376, y: 179, w: 100, img: 'a1', text: 'Хотела списать бонусы, а\u00A0они пропали' },
+  { side: 'l', x: 24,  y: 195, w: 104, img: 'a2', text: 'Сделал покупку, а\u00A0бонусы не\u00A0начислились' },
+  { side: 'r', x: 376, y: 315, w: 100, img: 'a3', text: 'Пропали бонусы!' },
+  { side: 'l', x: 24,  y: 352, w: 104, img: 'a4', text: 'Бонусы сгорели без предупреждения' },
+  { side: 'r', x: 376, y: 419, w: 100, img: 'a5', text: 'Куда делись мои бонусы?' },
 ];
 const POINTS_STEP = 450;   // пауза между отзывами, мс
 const POINTS_START = 300;  // задержка перед первым отзывом, мс
@@ -104,7 +104,7 @@ function buildPointsHero(){
     </div>`).join('');
   box.innerHTML = `
     <div class="uds-hero-kicker">Кейс / 03</div>
-    <div class="ph-title">Где мои баллы?</div>
+    <div class="ph-title">Где мои бонусы?</div>
     <img class="uds-hero-phone" src="images/case-qr/phone-uds.png" alt="">
     <div class="uds-hero-screen ph-screen">
       <video muted playsinline loop preload="auto">
@@ -115,7 +115,7 @@ function buildPointsHero(){
     </div>
     <div class="uds-hero-chip">UDS</div>
     ${bubbles}
-    <div class="ph-caption">Как сделать механику баллов в\u00A0UDS понятной</div>`;
+    <div class="ph-caption">Как сделать механику бонусов в\u00A0UDS понятной</div>`;
   return box;
 }
 
