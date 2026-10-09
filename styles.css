@@ -1461,11 +1461,11 @@ body{
 }
 .uds-hero-note{
   width: 84px;
-  font-family: 'Iosevka Charon', sans-serif; font-size: 12px; line-height: 16px;
+  font-family: 'Iosevka Charon', sans-serif; font-size: 16px; line-height: 20px;
   color: var(--color-text-secondary);
 }
-.uds-hero-note-l{ left: 28px; top: 478px; text-align: right; }
-.uds-hero-note-r{ left: 379px; top: 237px; }
+.uds-hero-note-l{ left: 13px; top: 466px; width: 100px; text-align: right; }
+.uds-hero-note-r{ left: 379px; top: 225px; width: 104px; }
 .card.card-hero-card:hover .uds-hero-phone{ transform: none; }
 
 /* Превью-ролик карточки (кейс TOP3000) */
@@ -1899,3 +1899,15 @@ body{
 /* список без стрелок (ограничения в кейсе UDS) */
 .case-content .arrow-list.no-arrows li{ padding-left: 0; }
 .case-content .arrow-list.no-arrows li::before{ content: none; }
+
+/* Превью кейсов: без тени по умолчанию, тень появляется только при наведении */
+.card:not(.card-photo){
+  box-shadow: 0 20px 50px rgba(40,20,70,0);
+  transition: transform 1.1s cubic-bezier(.4,0,.2,1), width 1.1s cubic-bezier(.4,0,.2,1), height 1.1s cubic-bezier(.4,0,.2,1), opacity .5s ease, scale .35s ease, box-shadow .35s ease;
+}
+@media (hover: hover){
+  .card:not(.card-photo):hover{ box-shadow: 0 20px 50px rgba(40,20,70,0.18); }
+}
+@media (max-width: 860px){
+  .card:not(.card-photo), .card:not(.card-photo):hover{ box-shadow: none; }
+}
