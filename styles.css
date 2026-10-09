@@ -1895,3 +1895,7 @@ body{
 .case-content .res-rows .res-row{ display: block; padding: 12px 0; }
 .case-content .res-num-pink{ background: var(--color-bg-page); }
 .case-content .res-row p{ margin-top: 4px; line-height: 20px; }
+
+/* список без стрелок (ограничения в кейсе UDS) */
+.case-content .arrow-list.no-arrows li{ padding-left: 0; }
+.case-content .arrow-list.no-arrows li::before{ content: none; }
